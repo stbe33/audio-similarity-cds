@@ -65,6 +65,7 @@ audio-sim evaluate --k 10
 | Aggregate | `aggregate.py` | mean pool + L2 normalize |
 | Index / search | `index/store.py`, `index/search.py` | `.npz` index; cosine top-k (FAISS later) |
 | Evaluate | `evaluate/metrics.py`, `evaluate/run_eval.py` | precision@k, Jaccard, nDCG vs a random floor |
+| Visualize | `visualize.py` | kNN graph + Louvain communities, projection scatter, similarity heatmap |
 
 The encoder sits behind a tiny `Embedder` interface (`embed_segments` in,
 vectors out, at a declared sample rate), so Discogs-EffNet and other models drop
@@ -82,6 +83,33 @@ per category (genre / instrument / mood/theme) and overall:
 - **random floor** — same metrics under random ranking; the bar to beat
 
 Reports are written to `embeddings/eval_report.{json,md}`.
+
+## Visualizing communities
+
+`audio-sim visualize` finds **communities** of mutually-similar songs and draws
+three complementary views. It builds a mutual-kNN cosine graph, partitions it
+with Louvain (modularity) community detection, and writes figures +
+`communities.md` (dominant tags per community) to `embeddings/figures/`.
+
+```bash
+pip install -e .[viz]                       # matplotlib + networkx
+audio-sim visualize --k 10 --projection tsne   # pca | tsne | umap
+python scripts/visualize_demo.py            # example figures on synthetic data
+```
+
+Example output (synthetic data, six genre clusters — `scripts/visualize_demo.py`):
+
+| Similarity graph | 2-D projection | Similarity heatmap |
+| --- | --- | --- |
+| ![graph](docs/examples/communities_graph.png) | ![scatter](docs/examples/communities_tsne.png) | ![heatmap](docs/examples/communities_heatmap.png) |
+
+- **graph** — each node a song, edges = top-k cosine neighbors, color = community
+- **projection** — PCA/t-SNE/UMAP of the song vectors, color = community (centroid-labeled)
+- **heatmap** — cosine matrix reordered by community; the dark diagonal blocks *are* the communities
+
+Colors use a colorblind-validated categorical palette; the heatmap uses a
+single-hue magnitude ramp. `visualize.py` also exposes `build_knn_graph`,
+`detect_communities`, `project_2d`, and `summarize_communities` for notebooks.
 
 ## Tests
 

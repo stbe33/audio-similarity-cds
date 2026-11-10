@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
 notebook = ["ipython>=8.0", "jupyter>=1.0"]
+viz = ["matplotlib>=3.6", "networkx>=3.0"]  # umap-learn is optional, for --projection umap
 
 [project.scripts]
 audio-sim = "audio_similarity.cli:main"

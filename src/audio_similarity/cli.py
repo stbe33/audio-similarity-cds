@@ -188,6 +188,28 @@ def cmd_evaluate(cfg: Config, args) -> int:
     return 0
 
 
+def cmd_visualize(cfg: Config, args) -> int:
+    from . import visualize as viz
+    from .index.store import load_index
+
+    ids, vectors = load_index(cfg.paths.index_path)
+    if not ids:
+        print("Empty index. Run 'embed' first.")
+        return 1
+    tracks = load_tracks(cfg)
+    out_dir = Path(cfg.paths.embeddings_dir) / "figures"
+    result = viz.visualize_index(
+        ids, vectors, tracks, out_dir,
+        k=args.k, method=args.projection, resolution=args.resolution,
+    )
+    print(f"Found {result['n_communities']} communities "
+          f"(modularity={result['modularity']:.3f}); sizes={result['sizes']}\n")
+    for name, path in result["paths"].items():
+        print(f"  {name:8}: {path}")
+    print("\n" + result["markdown"])
+    return 0
+
+
 # -- argument parsing -------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="audio-sim", description=__doc__)
@@ -223,6 +245,13 @@ def build_parser() -> argparse.ArgumentParser:
     ev = sub.add_parser("evaluate", help="tag-overlap evaluation vs a random floor")
     ev.add_argument("--k", type=int, default=10)
     ev.set_defaults(func=cmd_evaluate)
+
+    vz = sub.add_parser("visualize", help="plot song communities from the index")
+    vz.add_argument("--k", type=int, default=10, help="neighbors for the kNN graph")
+    vz.add_argument("--projection", default="pca", help="pca | tsne | umap")
+    vz.add_argument("--resolution", type=float, default=1.0,
+                    help="Louvain resolution (higher -> more, smaller communities)")
+    vz.set_defaults(func=cmd_visualize)
     return p
 
 
