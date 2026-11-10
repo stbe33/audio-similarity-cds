@@ -325,6 +325,56 @@ def similarity_heatmap(
     return out_path
 
 
+def segment_heatmap(
+    matrix: np.ndarray,
+    out_path: str | Path,
+    title: str = "Segment similarity",
+    xlabel: str = "segment",
+    ylabel: str = "segment",
+    boundaries: Optional[Sequence[int]] = None,
+    xticks: Optional[tuple] = None,
+    yticks: Optional[tuple] = None,
+    vmin: Optional[float] = None,
+    vmax: float = 1.0,
+) -> Path:
+    """Heatmap of a segment-vs-segment cosine matrix (self- or cross-song).
+
+    ``boundaries`` draws section lines on both axes (use for a square self-sim).
+    ``xticks``/``yticks`` are ``(positions, labels)`` for section annotations.
+    """
+    plt = _pyplot()
+    m = np.asarray(matrix, dtype=np.float32)
+    if vmin is None:
+        if m.shape[0] == m.shape[1]:
+            off = m[~np.eye(m.shape[0], dtype=bool)]
+        else:
+            off = m.ravel()
+        vmin = float(np.percentile(off, 2)) if off.size else 0.0
+
+    fig, ax = plt.subplots(figsize=(6.5, 5.5), facecolor=SURFACE)
+    im = ax.imshow(m, cmap=SEQUENTIAL, vmin=vmin, vmax=vmax,
+                   interpolation="nearest", aspect="auto")
+    for b in boundaries or []:
+        ax.axhline(b - 0.5, color=INK, linewidth=0.6, alpha=0.5)
+        ax.axvline(b - 0.5, color=INK, linewidth=0.6, alpha=0.5)
+    if xticks is not None:
+        ax.set_xticks(xticks[0]); ax.set_xticklabels(xticks[1], fontsize=8)
+    if yticks is not None:
+        ax.set_yticks(yticks[0]); ax.set_yticklabels(yticks[1], fontsize=8)
+    ax.set_title(title, color=INK, fontsize=12, fontweight="bold", loc="left")
+    ax.set_xlabel(xlabel, color=SECONDARY, fontsize=9)
+    ax.set_ylabel(ylabel, color=SECONDARY, fontsize=9)
+    ax.tick_params(colors=MUTED, labelsize=8)
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("cosine similarity", color=SECONDARY, fontsize=9)
+    cbar.ax.tick_params(colors=MUTED, labelsize=8)
+    fig.tight_layout()
+    out_path = Path(out_path)
+    fig.savefig(out_path, dpi=150, bbox_inches="tight", facecolor=SURFACE)
+    plt.close(fig)
+    return out_path
+
+
 # -- orchestrator ------------------------------------------------------------
 def visualize_index(
     ids: Sequence[str],

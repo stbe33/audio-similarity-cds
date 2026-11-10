@@ -66,6 +66,7 @@ audio-sim evaluate --k 10
 | Index / search | `index/store.py`, `index/search.py` | `.npz` index; cosine top-k (FAISS later) |
 | Evaluate | `evaluate/metrics.py`, `evaluate/run_eval.py` | precision@k, Jaccard, nDCG vs a random floor |
 | Visualize | `visualize.py` | kNN graph + Louvain communities, projection scatter, similarity heatmap |
+| Segments | `segments.py` | segment-vs-segment similarity, max/chamfer scorers, self-similarity, re-ranking |
 
 The encoder sits behind a tiny `Embedder` interface (`embed_segments` in,
 vectors out, at a declared sample rate), so Discogs-EffNet and other models drop
@@ -110,6 +111,39 @@ Example output (synthetic data, six genre clusters — `scripts/visualize_demo.p
 Colors use a colorblind-validated categorical palette; the heatmap uses a
 single-hue magnitude ramp. `visualize.py` also exposes `build_knn_graph`,
 `detect_communities`, `project_2d`, and `summarize_communities` for notebooks.
+
+## Segment-level comparison
+
+Song-level mean pooling answers *"are these tracks alike on average"*. It cannot
+answer *"do these tracks share a moment"* — a drop, riff, or texture — because
+averaging dilutes any single matching section. `segments.py` compares the cached
+per-segment embeddings directly:
+
+- `max_similarity` — the single best-matching segment pair (a shared moment)
+- `chamfer_similarity` — each segment's best match, averaged
+- `self_similarity` — a song's segment-vs-segment matrix (its section structure)
+
+`audio-sim query --key <id> --rerank max` re-scores the top song-level
+candidates by segment similarity, surfacing shared-moment matches.
+
+Example (`scripts/segment_demo.py`, synthetic segment embeddings — A, B, C each
+have a section identical to one of A's; D only *leans* toward A on average):
+
+| Self-similarity of one song | Two songs' segments (shared section) |
+| --- | --- |
+| ![selfsim](docs/examples/segment_selfsim.png) | ![cross](docs/examples/segment_cross.png) |
+
+| candidate | song-cos | **seg-max** | chamfer |
+| --- | ---: | ---: | ---: |
+| B (shares a section) | 0.158 | **0.928** | 0.278 |
+| C (shares a section) | 0.212 | **0.907** | 0.301 |
+| D (diffuse, no shared moment) | **0.536** | 0.689 | 0.431 |
+
+Song-level cosine is *fooled* — it ranks D top because D's mean aligns with A's —
+while segment-max correctly surfaces B and C, which each contain a near-identical
+section. On real (non-synthetic) audio, remember CLAP's cosines sit in a narrow
+high band, so segment-level scores separate less dramatically than this
+controlled demo; rank order remains the signal.
 
 ## Tests
 

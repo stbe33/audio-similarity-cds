@@ -142,6 +142,7 @@ def cmd_query(cfg: Config, args) -> int:
         print("Empty index. Run 'embed' first.")
         return 1
     tracks = load_tracks(cfg)
+    metric = "cos"
 
     if args.text is not None:
         from .embed import build_embedder
@@ -155,16 +156,31 @@ def cmd_query(cfg: Config, args) -> int:
             print(f"Key '{args.key}' not in index. Example keys: {ids[:5]}")
             return 1
         qpos = ids.index(args.key)
-        idx, scores = cosine_topk(vectors[qpos], vectors, k=args.k, exclude_index=qpos)
         q_tags = sorted(tracks[args.key].tags_in("genre")) if args.key in tracks else []
         print(f"Query: {args.key}   genre: {', '.join(q_tags) or '(n/a)'}")
+
+        if args.rerank == "none":
+            idx, scores = cosine_topk(vectors[qpos], vectors, k=args.k, exclude_index=qpos)
+        else:
+            # Re-rank a larger song-level pool by segment-level similarity so
+            # shared-moment matches surface (uses cached per-track segments).
+            from .segments import segment_rerank
+
+            pool, _ = cosine_topk(vectors[qpos], vectors,
+                                  k=max(args.k, args.pool), exclude_index=qpos)
+            pool_keys = [ids[int(j)] for j in pool]
+            ranked = segment_rerank(args.key, pool_keys, cfg.paths.embeddings_dir,
+                                    cfg.model.name, method=args.rerank)[: args.k]
+            idx = np.array([ids.index(k) for k, _ in ranked], dtype=int)
+            scores = np.array([s for _, s in ranked], dtype=np.float32)
+            metric = f"seg-{args.rerank}"
 
     print(f"\nTop {len(idx)} neighbors:")
     for rank, (j, s) in enumerate(zip(idx, scores), 1):
         key = ids[int(j)]
         genres = sorted(tracks[key].tags_in("genre")) if key in tracks else []
         tail = f"  [{', '.join(g.split('---')[1] for g in genres)}]" if genres else ""
-        print(f"  {rank:2d}. {key}   cos={s:.3f}{tail}")
+        print(f"  {rank:2d}. {key}   {metric}={s:.3f}{tail}")
     return 0
 
 
@@ -240,6 +256,11 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--key", help="track key (audio file stem) to query by")
     g.add_argument("--text", help="text prompt, e.g. 'mellow jazz guitar'")
     q.add_argument("--k", type=int, default=10)
+    q.add_argument("--rerank", choices=["none", "max", "chamfer", "topk"],
+                   default="none",
+                   help="re-rank by segment-level similarity (key queries only)")
+    q.add_argument("--pool", type=int, default=50,
+                   help="song-level candidates to re-rank when --rerank is set")
     q.set_defaults(func=cmd_query)
 
     ev = sub.add_parser("evaluate", help="tag-overlap evaluation vs a random floor")
