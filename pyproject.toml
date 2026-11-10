@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "audio-similarity"
+version = "0.1.0"
+description = "Audio-based music similarity: segment -> CLAP embed -> cosine retrieval, evaluated on MTG-Jamendo."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "idhantag" }]
+dependencies = [
+    "numpy>=1.23",
+    "pyyaml>=6.0",
+    "pandas>=1.5",
+    "scikit-learn>=1.1",
+    "tqdm>=4.64",
+    "librosa>=0.10",
+    "soundfile>=0.12",
+    "torch>=2.1",
+    "transformers>=4.40",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+notebook = ["ipython>=8.0", "jupyter>=1.0"]
+
+[project.scripts]
+audio-sim = "audio_similarity.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,30 @@
+# Milestone-1 configuration. Every stage reads its defaults from here.
+# Change experiments (segment length, pooling model, k, ...) in one place.
+
+audio:
+  target_sr: 48000        # informational; the encoder sets the rate it needs
+  mono: true
+
+segment:
+  window_seconds: 10.0    # CLAP is trained on ~10 s clips
+  hop_seconds: 5.0        # 50% overlap between windows
+  min_segment_seconds: 3.0
+
+model:
+  name: clap
+  checkpoint: laion/larger_clap_music
+  device: auto            # auto | cpu | mps | cuda  (auto -> cuda > mps > cpu)
+  batch_size: 16
+
+paths:
+  data_dir: data
+  raw_audio_dir: data/raw
+  metadata_dir: data/metadata
+  embeddings_dir: embeddings
+  index_path: embeddings/song_index.npz
+  subset_file: data/subset.txt
+
+eval:
+  k: 10
+  tag_categories: [genre, instrument, "mood/theme"]
+  seed: 42

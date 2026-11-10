@@ -1,0 +1,24 @@
+# Data and generated artifacts (large / machine-specific)
+# Anchored to repo root so src/audio_similarity/data/ (the package) is NOT ignored.
+/data/
+/embeddings/
+*.mp3
+*.wav
+*.flac
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.DS_Store
