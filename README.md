@@ -98,6 +98,12 @@ store→search→evaluate path) are covered without needing torch or audio files
 
 - **Apple Silicon:** CLAP (PyTorch) installs cleanly and uses MPS. Set
   `model.device: cpu` in `config.yaml` if you hit an MPS kernel gap.
+- **torch / checkpoint loading:** `larger_clap_music` ships only pickle (`.bin`)
+  weights, which transformers won't `torch.load` on torch < 2.6
+  (CVE-2025-32434). `ClapEmbedder` handles this: on first load it converts the
+  cached weights to safetensors with a safe `weights_only=True` load, so
+  embedding works on torch 2.2+ without upgrading. `scripts/clap_smoke.py`
+  prints what the vectors look like (shape, norm, cosine structure).
 - **Licensing:** `laion/larger_clap_music` is research-friendly; Discogs-EffNet
   (milestone 2) is CC BY-NC-SA 4.0 (non-commercial). MTG-Jamendo audio is
   Creative Commons.

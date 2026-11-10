@@ -20,6 +20,8 @@ dependencies = [
     "soundfile>=0.12",
     "torch>=2.1",
     "transformers>=4.40",
+    "huggingface-hub>=0.20",
+    "safetensors>=0.4",
 ]
 
 [project.optional-dependencies]
